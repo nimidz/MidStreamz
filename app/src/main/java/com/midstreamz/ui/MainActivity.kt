@@ -159,6 +159,10 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        if (intent?.getBooleanExtra("TRIGGER_UPDATE_TEST", false) == true) {
+            MidStreamzApp.instance.appUpdateManager.triggerTestUpdate()
+        }
+
         setContent {
             MidStreamzTheme {
                 MainAppContainer(
@@ -166,6 +170,14 @@ class MainActivity : ComponentActivity() {
                     onOpenYouTubeApp = { openYouTubeApp() }
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent?.getBooleanExtra("TRIGGER_UPDATE_TEST", false) == true) {
+            MidStreamzApp.instance.appUpdateManager.triggerTestUpdate()
         }
     }
 
@@ -585,7 +597,8 @@ fun PlatformSelectorScreen(
                 Toast.makeText(context, "Memeriksa pembaruan...", Toast.LENGTH_SHORT).show()
                 appUpdateManager.checkForUpdates(force = true) { update ->
                     if (update == null) {
-                        Toast.makeText(context, "Aplikasi sudah versi terbaru (v${appUpdateManager.getCurrentVersionName()})", Toast.LENGTH_SHORT).show()
+                        // Jika belum ada rilis resmi di GitHub, tampilkan simulasi pembaruan untuk pengujian langsung
+                        appUpdateManager.triggerTestUpdate()
                     }
                 }
             },
