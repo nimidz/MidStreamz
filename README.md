@@ -2,7 +2,7 @@
   <img src="docs/assets/app_icon.png" width="128" height="128" alt="MidStreamz Logo" />
 </p>
 
-<h1 align="center">MidStreamz</h1>
+<h1 align="center">MidStreamz - Streaming Tools</h1>
 
 <p align="center">
   <strong>All-in-One Client-Side Live Streaming Assistant Engine for Android</strong><br />
