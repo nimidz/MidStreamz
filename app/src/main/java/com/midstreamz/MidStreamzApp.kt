@@ -26,11 +26,14 @@ class MidStreamzApp : Application() {
         private set
     lateinit var appLanguageManager: com.midstreamz.manager.AppLanguageManager
         private set
+    lateinit var appUpdateManager: com.midstreamz.manager.AppUpdateManager
+        private set
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         appLanguageManager = com.midstreamz.manager.AppLanguageManager(this)
+        appUpdateManager = com.midstreamz.manager.AppUpdateManager(this)
         overlayConfigManager = com.midstreamz.manager.OverlayConfigManager(this)
         ttsManager = TtsManager(this)
         alertSoundManager = AlertSoundManager(this)

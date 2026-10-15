@@ -192,7 +192,20 @@ data class LocalizedStrings(
     val liveFeedStartSim: String = "▶ MULAI TES SIMULASI",
     val liveFeedStopSim: String = "⏹ HENTIKAN SIMULASI",
     val liveFeedEmpty: String = "Belum ada pesan live chat masuk...",
-    val liveFeedWaiting: String = "Menunggu pesan chat dari penonton..."
+    val liveFeedWaiting: String = "Menunggu pesan chat dari penonton...",
+
+    // Update Available Window
+    val updateAvailableTitle: String = "Update tersedia",
+    val updateListTitle: String = "List Update/Perbaikan",
+    val updateManualButton: String = "Update Manual",
+    val updateInstallButton: String = "Update & Install",
+    val updateLaterButton: String = "Update Later",
+    val updateCheckbox7Days: String = "Jangan beritahu saya lagi selama 7 hari kedepan",
+    val updateDownloading: String = "Mengunduh pembaruan...",
+    val updateDownloadComplete: String = "Download selesai. Memulai pemasangan...",
+    val updatePermissionTitle: String = "Izin Pemasangan Diperlukan",
+    val updatePermissionDesc: String = "Aktifkan izin 'Install aplikasi tidak dikenal' untuk MidStreamz, lalu kembali ke aplikasi untuk memasang otomatis.",
+    val updateOpenSettings: String = "Buka Pengaturan Izin"
 )
 
 class AppLanguageManager(private val context: Context) {

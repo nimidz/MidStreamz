@@ -169,6 +169,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        MidStreamzApp.instance.appUpdateManager.checkPendingInstallOnResume()
+    }
+
     private fun setupHighRefreshRateFSync() {
         try {
             window.setFormat(PixelFormat.RGBA_8888)
@@ -309,6 +314,24 @@ fun MainAppContainer(
                             onToggleOverlay = onToggleOverlay
                         )
                     }
+                }
+
+                // Window Update Available
+                val appUpdateManager = MidStreamzApp.instance.appUpdateManager
+                val availableUpdate by appUpdateManager.availableUpdate.collectAsState()
+
+                LaunchedEffect(Unit) {
+                    appUpdateManager.checkForUpdates(force = false)
+                }
+
+                if (availableUpdate != null) {
+                    UpdateAvailableDialog(
+                        updateInfo = availableUpdate!!,
+                        appUpdateManager = appUpdateManager,
+                        onDismiss = {
+                            appUpdateManager.dismissDialog()
+                        }
+                    )
                 }
             }
         }
@@ -546,15 +569,54 @@ fun PlatformSelectorScreen(
         }
     }
 
-    // Tombol Pengaturan Bahasa di Pojok Kanan Atas (Globe Icon + Bendera Emoji)
-    AppLanguageButton(
+    // Top Bar Actions di Pojok Kanan Atas (Tombol Cek Update & Pengaturan Bahasa)
+    Row(
         modifier = Modifier
             .align(Alignment.TopEnd)
             .statusBarsPadding()
             .padding(top = 16.dp, end = 20.dp)
             .zIndex(25f),
-        onClick = { showLanguageDialog = true }
-    )
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val appUpdateManager = MidStreamzApp.instance.appUpdateManager
+        Surface(
+            onClick = {
+                Toast.makeText(context, "Memeriksa pembaruan...", Toast.LENGTH_SHORT).show()
+                appUpdateManager.checkForUpdates(force = true) { update ->
+                    if (update == null) {
+                        Toast.makeText(context, "Aplikasi sudah versi terbaru (v${appUpdateManager.getCurrentVersionName()})", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            shape = CircleShape,
+            color = SurfaceDark,
+            border = BorderStroke(1.dp, BorderDark)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SystemUpdate,
+                    contentDescription = "Cek Update",
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = "Update",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            }
+        }
+
+        AppLanguageButton(
+            onClick = { showLanguageDialog = true }
+        )
+    }
 
     if (showLanguageDialog) {
         LanguageSelectionDialog(onDismiss = { showLanguageDialog = false })
