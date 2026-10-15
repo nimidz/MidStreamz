@@ -1,0 +1,28 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+*/build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.log
+
+# Scratch test files
+test_*.py
+test_*.png
+screen_*.png
+innertube_test.json
+.agents/
+AGENTS.md
+performance.md
+
+# Root screenshot files (clean copies organized in docs/screenshots/)
+/*.jpg

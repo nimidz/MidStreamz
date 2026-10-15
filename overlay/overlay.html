@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MidStreamz - OBS Stream Overlay</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- MQTT.js for Realtime PubSub -->
+    <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+    <!-- YouTube IFrame API for Song Request Audio Streaming -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <style>
+        :root {
+            --bg-color: transparent;
+            --primary-accent: #22c55e;
+            --superchat-accent: #eab308;
+            --member-accent: #3b82f6;
+            --sub-accent: #ef4444;
+            --music-accent: #a855f7;
+            --card-bg: rgba(18, 18, 20, 0.92);
+            --border-color: rgba(255, 255, 255, 0.12);
+            --text-main: #f3f4f6;
+            --text-sub: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: transparent;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* Setup / Test Banner (Only visible if opened in normal browser without URL param) */
+        #setup-bar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #16181d;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 18px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 99999;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            font-size: 13px;
+        }
+
+        #setup-bar.hidden {
+            display: none !important;
+        }
+
+        #setup-bar input {
+            background: #20242c;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-family: monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            outline: none;
+            width: 130px;
+            text-align: center;
+        }
+
+        #setup-bar button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #setup-bar button:hover {
+            background: #1d4ed8;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        /* 1. ALERT BOX CONTAINER (Center Screen) */
+        #alert-container {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 580px;
+            max-width: 90vw;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .alert-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px 32px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: alertPopup 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert-card.fade-out {
+            animation: alertDismiss 0.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+        }
+
+        .alert-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .badge-sub { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-superchat { background: rgba(234, 179, 8, 0.18); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+        .badge-member { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-like { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+
+        .alert-user {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .alert-amount {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: #facc15;
+            margin: 6px 0 10px 0;
+        }
+
+        .alert-message {
+            font-size: 17px;
+            font-weight: 500;
+            color: #e5e7eb;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-top: 10px;
+            width: 100%;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .alert-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--primary-accent);
+            width: 100%;
+            transform-origin: left;
+            animation: progressBar linear forwards;
+        }
+
+        @keyframes alertPopup {
+            0% { opacity: 0; transform: translateY(-40px) scale(0.92); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes alertDismiss {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(30px) scale(0.94); }
+        }
+
+        @keyframes progressBar {
+            0% { transform: scaleX(1); }
+            100% { transform: scaleX(0); }
+        }
+
+        /* 2. CHAT OVERLAY CONTAINER (Bottom Left) */
+        #chat-container {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            width: 420px;
+            max-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 8px;
+            pointer-events: none;
+            z-index: 500;
+            overflow: hidden;
+            mask-image: linear-gradient(to top, black 85%, transparent 100%);
+        }
+
+        .chat-bubble {
+            background: rgba(15, 17, 21, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: chatSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            transition: opacity 0.5s ease;
+        }
+
+        .chat-bubble.superchat-bubble {
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            background: rgba(30, 24, 12, 0.92);
+        }
+
+        .chat-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #2a2e39;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #93c5fd;
+            flex-shrink: 0;
+        }
+
+        .chat-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+
+        .chat-author {
+            font-weight: 700;
+            font-size: 13px;
+            color: #93c5fd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .badge-mod-pill {
+            background: #0284c7;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-sc-pill {
+            background: #eab308;
+            color: #000;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .chat-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #f3f4f6;
+            word-break: break-word;
+        }
+
+        @keyframes chatSlideIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* 3. SONG REQUEST OVERLAY CONTAINER (Bottom Right) */
+        #song-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 420px;
+            pointer-events: none;
+            z-index: 600;
+        }
+
+        .song-banner {
+            background: rgba(18, 20, 26, 0.94);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 16px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(14px);
+            animation: songSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .song-disc {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #a855f7 20%, #4c1d95 60%, #1e1b4b 100%);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: spin 6s linear infinite;
+            flex-shrink: 0;
+            box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+        }
+
+        .song-disc.paused {
+            animation-play-state: paused;
+        }
+
+        .song-disc-inner {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .song-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .song-tag {
+            font-size: 10px;
+            font-weight: 800;
+            color: #c084fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .song-tag span.badge-audio {
+            background: #22c55e;
+            color: #000;
+            font-size: 9px;
+            font-weight: 900;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .song-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 3px;
+        }
+
+        .song-requester {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        @keyframes songSlideIn {
+            0% { opacity: 0; transform: translateX(30px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Hidden YouTube IFrame Player (Audio Only in Stream) */
+        #player-wrapper {
+            position: fixed;
+            bottom: -9999px;
+            right: -9999px;
+            width: 200px;
+            height: 200px;
+            opacity: 0.01;
+            pointer-events: none;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Test / Config Bar for testing outside OBS -->
+    <div id="setup-bar">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Disconnected</span>
+        <input type="text" id="linkkey-input" placeholder="MID-XXXX" maxlength="12">
+        <button id="btn-connect">Connect Key</button>
+        <button id="btn-test-alert" style="background:#4b5563;">Test Alert</button>
+        <button id="btn-test-sr" style="background:#6b21a8;">Test !sr Asal Kau Bahagia</button>
+    </div>
+
+    <!-- Alert Box Layer -->
+    <div id="alert-container"></div>
+
+    <!-- Live Chat Overlay Layer -->
+    <div id="chat-container"></div>
+
+    <!-- Song Request Banner Layer -->
+    <div id="song-container"></div>
+
+    <!-- Hidden YouTube Audio Player -->
+    <div id="player-wrapper">
+        <div id="yt-player"></div>
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for Alert Chimes
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playAlertSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'SUPER_CHAT') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.75);
+                } else if (type === 'SUBSCRIBE') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(880, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.65);
+                } else {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                }
+            } catch (e) {
+                console.warn('AudioContext error:', e);
+            }
+        }
+
+        // YouTube IFrame API Setup for Song Request Playback
+        let ytPlayer = null;
+        let isYtReady = false;
+
+        window.onYouTubeIframeAPIReady = function() {
+            try {
+                ytPlayer = new YT.Player('yt-player', {
+                    height: '200',
+                    width: '200',
+                    playerVars: {
+                        'autoplay': 1,
+                        'controls': 0,
+                        'disablekb': 1,
+                        'playsinline': 1,
+                        'enablejsapi': 1
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange,
+                        'onError': onPlayerError
+                    }
+                });
+            } catch (e) {
+                console.error("Error creating YouTube player:", e);
+            }
+        };
+
+        function onPlayerReady(event) {
+            isYtReady = true;
+            console.log("YouTube Player is ready to stream song requests!");
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                const disc = document.querySelector('.song-disc');
+                if (disc) disc.classList.remove('paused');
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                const disc = document.querySelector('.song-disc');
+                if (disc) disc.classList.add('paused');
+            } else if (event.data === YT.PlayerState.ENDED) {
+                console.log("Song finished playing!");
+            }
+        }
+
+        function onPlayerError(e) {
+            console.warn("YouTube player error:", e.data);
+        }
+
+        function playYoutubeAudio(videoId) {
+            if (!videoId) return;
+            if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+                ytPlayer.loadVideoById(videoId);
+                ytPlayer.playVideo();
+            } else {
+                setTimeout(() => playYoutubeAudio(videoId), 400);
+            }
+        }
+
+        // URL Parameters Extraction
+        const urlParams = new URLSearchParams(window.location.search);
+        let linkKey = urlParams.get('key') || localStorage.getItem('midstreamz_linkkey') || 'MID-HAJJ';
+        const isHeadless = urlParams.has('key') || window.location.hash.includes('obs');
+
+        const setupBar = document.getElementById('setup-bar');
+        const linkkeyInput = document.getElementById('linkkey-input');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const btnConnect = document.getElementById('btn-connect');
+
+        linkkeyInput.value = linkKey;
+
+        if (isHeadless) {
+            setupBar.classList.add('hidden');
+        }
+
+        // MQTT Client Setup (EMQX Public SSL WebSocket Broker)
+        let client = null;
+
+        function connectRelay(key) {
+            if (!key) return;
+            key = key.trim().toUpperCase();
+            linkKey = key;
+            localStorage.setItem('midstreamz_linkkey', key);
+
+            if (client) {
+                try { client.end(true); } catch(e) {}
+            }
+
+            statusText.innerText = 'Connecting...';
+            statusDot.className = 'status-dot';
+
+            const clientId = 'obs_overlay_' + Math.random().toString(16).substr(2, 8);
+            const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+
+            client = mqtt.connect(brokerUrl, {
+                clientId: clientId,
+                clean: true,
+                keepalive: 30,
+                reconnectPeriod: 3000
+            });
+
+            client.on('connect', () => {
+                statusText.innerText = `Connected: ${key}`;
+                statusDot.className = 'status-dot connected';
+
+                const topic = `midstreamz/v1/${key}/events`;
+                client.subscribe(topic, { qos: 1 }, (err) => {
+                    if (!err) {
+                        console.log(`Subscribed to topic: ${topic}`);
+                    }
+                });
+            });
+
+            client.on('message', (topic, message) => {
+                try {
+                    const payload = JSON.parse(message.toString());
+                    handleIncomingEvent(payload);
+                } catch (e) {
+                    console.error('Failed to parse event:', e);
+                }
+            });
+
+            client.on('error', (err) => {
+                console.error('MQTT error:', err);
+                statusText.innerText = 'Error';
+                statusDot.className = 'status-dot';
+            });
+
+            client.on('close', () => {
+                statusText.innerText = 'Disconnected';
+                statusDot.className = 'status-dot';
+            });
+        }
+
+        // Event Dispatcher
+        function handleIncomingEvent(event) {
+            switch (event.type) {
+                case 'ALERT':
+                    showAlert(event.data);
+                    break;
+                case 'CHAT':
+                    addChatMessage(event.data);
+                    break;
+                case 'SONG_REQUEST':
+                    handleSongRequest(event.data);
+                    break;
+                default:
+                    console.log('Unknown event:', event);
+            }
+        }
+
+        // 1. ALERT DISPLAY
+        const alertContainer = document.getElementById('alert-container');
+        let alertQueue = [];
+        let isShowingAlert = false;
+
+        function showAlert(data) {
+            alertQueue.push(data);
+            if (!isShowingAlert) {
+                processNextAlert();
+            }
+        }
+
+        function processNextAlert() {
+            if (alertQueue.length === 0) {
+                isShowingAlert = false;
+                return;
+            }
+
+            isShowingAlert = true;
+            const data = alertQueue.shift();
+            const durationMs = data.durationMs || 5500;
+
+            let badgeClass = 'badge-sub';
+            let badgeLabel = 'SUBSCRIBER BARU';
+            if (data.alertType === 'SUPER_CHAT') {
+                badgeClass = 'badge-superchat';
+                badgeLabel = 'SUPER CHAT / DONASI';
+            } else if (data.alertType === 'MEMBER') {
+                badgeClass = 'badge-member';
+                badgeLabel = 'NEW MEMBER';
+            } else if (data.alertType === 'LIKE_MILESTONE') {
+                badgeClass = 'badge-like';
+                badgeLabel = 'TARGET LIKE';
+            }
+
+            playAlertSound(data.alertType);
+
+            const card = document.createElement('div');
+            card.className = 'alert-card';
+            card.innerHTML = `
+                <div class="alert-badge ${badgeClass}">${badgeLabel}</div>
+                <div class="alert-user">${escapeHtml(data.user || 'Viewer')}</div>
+                ${data.amount ? `<div class="alert-amount">${escapeHtml(data.amount)}</div>` : ''}
+                ${data.message ? `<div class="alert-message">"${escapeHtml(data.message)}"</div>` : ''}
+                <div class="alert-progress" style="animation-duration: ${durationMs}ms;"></div>
+            `;
+
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(card);
+
+            setTimeout(() => {
+                card.classList.add('fade-out');
+                setTimeout(() => {
+                    if (alertContainer.contains(card)) {
+                        alertContainer.removeChild(card);
+                    }
+                    processNextAlert();
+                }, 500);
+            }, durationMs);
+        }
+
+        // 2. LIVE CHAT DISPLAY
+        const chatContainer = document.getElementById('chat-container');
+
+        function addChatMessage(data) {
+            const bubble = document.createElement('div');
+            const isSc = data.isSuperChat || !!data.amount;
+            bubble.className = 'chat-bubble' + (isSc ? ' superchat-bubble' : '');
+
+            const initial = (data.author || 'U').charAt(0).toUpperCase();
+
+            let badgesHtml = '';
+            if (data.isModerator) badgesHtml += '<span class="badge-mod-pill">MOD</span>';
+            if (isSc) badgesHtml += `<span class="badge-sc-pill">${escapeHtml(data.amount || 'SUPER CHAT')}</span>`;
+
+            bubble.innerHTML = `
+                <div class="chat-avatar">${initial}</div>
+                <div class="chat-body">
+                    <div class="chat-header">
+                        <span class="chat-author">${escapeHtml(data.author || 'User')}</span>
+                        ${badgesHtml}
+                    </div>
+                    <div class="chat-text">${escapeHtml(data.message || '')}</div>
+                </div>
+            `;
+
+            chatContainer.appendChild(bubble);
+
+            if (chatContainer.children.length > 7) {
+                chatContainer.removeChild(chatContainer.children[0]);
+            }
+
+            setTimeout(() => {
+                bubble.style.opacity = '0';
+                setTimeout(() => {
+                    if (chatContainer.contains(bubble)) {
+                        chatContainer.removeChild(bubble);
+                    }
+                }, 500);
+            }, 12000);
+        }
+
+        // 3. SONG REQUEST NOW PLAYING & REAL AUDIO STREAMING
+        const songContainer = document.getElementById('song-container');
+
+        let ytPlayerIframe = null;
+
+        function playYoutubeAudio(videoId) {
+            if (!ytPlayerIframe) {
+                ytPlayerIframe = document.createElement('iframe');
+                ytPlayerIframe.id = 'yt-audio-stream';
+                ytPlayerIframe.style.position = 'fixed';
+                ytPlayerIframe.style.bottom = '-9999px';
+                ytPlayerIframe.style.width = '320px';
+                ytPlayerIframe.style.height = '180px';
+                ytPlayerIframe.style.border = 'none';
+                ytPlayerIframe.allow = 'autoplay; encrypted-media';
+                document.body.appendChild(ytPlayerIframe);
+            }
+            ytPlayerIframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+        }
+
+        function handleSongRequest(data) {
+            if (!data) return;
+            const action = data.action;
+            const song = data.song;
+
+            if (action === 'PLAY' && song) {
+                updateSongBanner(data);
+                if (song.youtubeId) {
+                    playYoutubeAudio(song.youtubeId);
+                }
+            } else if (action === 'PAUSE') {
+                if (ytPlayerIframe && ytPlayerIframe.contentWindow) {
+                    ytPlayerIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                }
+                const disc = document.querySelector('.song-disc');
+                if (disc) disc.classList.add('paused');
+            } else if (action === 'RESUME') {
+                if (ytPlayerIframe && ytPlayerIframe.contentWindow) {
+                    ytPlayerIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                }
+                const disc = document.querySelector('.song-disc');
+                if (disc) disc.classList.remove('paused');
+            } else if (action === 'STOP' || action === 'CLEAR') {
+                if (ytPlayerIframe) {
+                    ytPlayerIframe.src = 'about:blank';
+                }
+                songContainer.innerHTML = '';
+            }
+        }
+
+        function updateSongBanner(data) {
+            if (!data || !data.song) {
+                songContainer.innerHTML = '';
+                return;
+            }
+
+            const song = data.song;
+            songContainer.innerHTML = `
+                <div class="song-banner">
+                    <div class="song-disc">
+                        <div class="song-disc-inner"></div>
+                    </div>
+                    <div class="song-info">
+                        <div class="song-tag">
+                            <span>NOW PLAYING</span>
+                            <span class="badge-audio">AUDIO ON</span>
+                        </div>
+                        <div class="song-title">${escapeHtml(song.title || 'Lagu Pilihan')}</div>
+                        <div class="song-requester">Req: @${escapeHtml(song.requester || 'Streamer')}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+
+        // Buttons handlers for manual testing outside OBS
+        btnConnect.addEventListener('click', () => {
+            connectRelay(linkkeyInput.value);
+        });
+
+        document.getElementById('btn-test-alert').addEventListener('click', () => {
+            showAlert({
+                alertType: 'SUPER_CHAT',
+                user: 'Budi Gaming',
+                amount: 'Rp 50.000',
+                message: 'Semangat bang push rank nya! Ggwp selalu!',
+                durationMs: 5000
+            });
+        });
+
+        document.getElementById('btn-test-sr').addEventListener('click', () => {
+            handleSongRequest({
+                action: 'PLAY',
+                song: {
+                    title: 'Armada - Asal Kau Bahagia',
+                    youtubeId: 'py6GDNgye6k',
+                    requester: 'Streamer'
+                }
+            });
+        });
+
+        // Initialize connection
+        connectRelay(linkKey);
+    </script>
+</body>
+</html>
