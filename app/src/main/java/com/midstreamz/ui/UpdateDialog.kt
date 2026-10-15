@@ -3,6 +3,7 @@ package com.midstreamz.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ fun UpdateAvailableDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val locStrings = LocalAppStrings.current
     val downloadState by appUpdateManager.downloadState.collectAsState()
     val isPermissionNeeded by appUpdateManager.isPermissionNeeded.collectAsState()
     var snoozeChecked by remember { mutableStateOf(false) }
@@ -101,13 +103,13 @@ fun UpdateAvailableDialog(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Update tersedia ${updateInfo.tagName}",
+                            text = "${locStrings.updateAvailableTitle} ${updateInfo.tagName}",
                             color = TextPrimary,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Versi saat ini: v$currentVersion",
+                            text = "${locStrings.updateCurrentVersion}: v$currentVersion",
                             color = TextSecondary,
                             fontSize = 12.sp
                         )
@@ -132,7 +134,7 @@ fun UpdateAvailableDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "List Update/Perbaikan",
+                            text = locStrings.updateListTitle,
                             color = TextSecondary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -183,7 +185,7 @@ fun UpdateAvailableDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Mengunduh... $percent%",
+                                        text = "${locStrings.updateDownloading} $percent%",
                                         color = TextPrimary,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold
@@ -218,14 +220,14 @@ fun UpdateAvailableDialog(
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Text(
-                                                text = "Izin Pemasangan Diperlukan",
+                                                text = locStrings.updatePermissionTitle,
                                                 color = AmberSuperChat,
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
                                         Text(
-                                            text = "Aktifkan izin 'Install aplikasi tidak dikenal' untuk MidStreamz, lalu kembali ke aplikasi untuk memasang otomatis.",
+                                            text = locStrings.updatePermissionDesc,
                                             color = TextSecondary,
                                             fontSize = 12.sp,
                                             lineHeight = 16.sp
@@ -244,7 +246,7 @@ fun UpdateAvailableDialog(
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                text = "Aktifkan Izin di Pengaturan",
+                                                text = locStrings.updateOpenSettings,
                                                 color = Color.Black,
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold
@@ -263,7 +265,7 @@ fun UpdateAvailableDialog(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Text(
-                                            text = "Download selesai. Memulai pemasangan...",
+                                            text = locStrings.updateDownloadComplete,
                                             color = EmeraldSuccess,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.SemiBold
@@ -283,7 +285,7 @@ fun UpdateAvailableDialog(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(
-                                        text = "Gagal mengunduh: ${state.message}",
+                                        text = "${locStrings.updateFailed}: ${state.message}",
                                         color = RoseError,
                                         fontSize = 12.sp
                                     )
@@ -318,7 +320,7 @@ fun UpdateAvailableDialog(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Jangan beritahu saya lagi selama 7 hari kedepan",
+                            text = locStrings.updateCheckbox7Days,
                             color = TextSecondary,
                             fontSize = 12.5.sp,
                             lineHeight = 16.sp
@@ -358,13 +360,13 @@ fun UpdateAvailableDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isCompleted) "Pasang Sekarang" else "Update & Install",
+                                text = if (isCompleted) locStrings.updateInstallNow else locStrings.updateInstallButton,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
 
-                        // Row: [ Update Manual ] and [ Update Later ]
+                        // Row: [ Update Manual ] and [ Update Later ] (both OutlinedButtons with BorderDark & CircleShape)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -378,7 +380,7 @@ fun UpdateAvailableDialog(
                                     .weight(1f)
                                     .height(42.dp),
                                 shape = CircleShape,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
+                                border = BorderStroke(1.dp, BorderDark)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.OpenInBrowser,
@@ -388,15 +390,16 @@ fun UpdateAvailableDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Update Manual",
+                                    text = locStrings.updateManualButton,
                                     color = TextSecondary,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
                                 )
                             }
 
                             // [ Update Later ]
-                            TextButton(
+                            OutlinedButton(
                                 onClick = {
                                     if (snoozeChecked) {
                                         appUpdateManager.snoozeUpdateFor7Days(updateInfo.versionName)
@@ -406,27 +409,37 @@ fun UpdateAvailableDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(42.dp),
-                                shape = CircleShape
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, BorderDark)
                             ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Update Later",
+                                    text = locStrings.updateLaterButton,
                                     color = TextSecondary,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
                                 )
                             }
                         }
                     } else {
-                        // While downloading, show a subtle cancel button
-                        TextButton(
+                        // While downloading, show a subtle background continue button
+                        OutlinedButton(
                             onClick = { onDismiss() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(40.dp),
-                            shape = CircleShape
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, BorderDark)
                         ) {
                             Text(
-                                text = "Lanjutkan di Latar Belakang",
+                                text = locStrings.updateContinueBackground,
                                 color = TextSecondary,
                                 fontSize = 13.sp
                             )

@@ -159,10 +159,6 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        if (intent?.getBooleanExtra("TRIGGER_UPDATE_TEST", false) == true) {
-            MidStreamzApp.instance.appUpdateManager.triggerTestUpdate()
-        }
-
         setContent {
             MidStreamzTheme {
                 MainAppContainer(
@@ -170,14 +166,6 @@ class MainActivity : ComponentActivity() {
                     onOpenYouTubeApp = { openYouTubeApp() }
                 )
             }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        if (intent?.getBooleanExtra("TRIGGER_UPDATE_TEST", false) == true) {
-            MidStreamzApp.instance.appUpdateManager.triggerTestUpdate()
         }
     }
 
@@ -594,11 +582,10 @@ fun PlatformSelectorScreen(
         val appUpdateManager = MidStreamzApp.instance.appUpdateManager
         Surface(
             onClick = {
-                Toast.makeText(context, "Memeriksa pembaruan...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, locStrings.updateCheckingToast, Toast.LENGTH_SHORT).show()
                 appUpdateManager.checkForUpdates(force = true) { update ->
                     if (update == null) {
-                        // Jika belum ada rilis resmi di GitHub, tampilkan simulasi pembaruan untuk pengujian langsung
-                        appUpdateManager.triggerTestUpdate()
+                        Toast.makeText(context, "${locStrings.updateLatestToast} (v${appUpdateManager.getCurrentVersionName()})", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -613,12 +600,12 @@ fun PlatformSelectorScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.SystemUpdate,
-                    contentDescription = "Cek Update",
+                    contentDescription = locStrings.updateCheckButton,
                     tint = PrimaryBlue,
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = "Update",
+                    text = locStrings.updateCheckButton,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
