@@ -243,6 +243,12 @@ Contributions, bug reports, and feature requests are very welcome!
 
 ---
 
+## 🔍 Keywords & Discovery Tags
+
+`youtube-live-chat-reader` &bull; `tiktok-live-chat-reader` &bull; `android-streaming-overlay` &bull; `floating-hud-stream` &bull; `innertube-android` &bull; `stream-text-to-speech` &bull; `android-tts-streamer` &bull; `song-request-live-chat` &bull; `sound-alerts-streamer` &bull; `mobile-gaming-companion` &bull; `obs-browser-source-mobile` &bull; `no-login-stream-tools` &bull; `superchat-alert-reader` &bull; `tiktok-gift-alert` &bull; `mobile-legends-stream` &bull; `pubg-mobile-stream` &bull; `free-fire-stream` &bull; `vtuber-android-tools` &bull; `jetpack-compose-m3` &bull; `kotlin-android`
+
+---
+
 ## 📄 License
 
 This project is licensed under the **GNU General Public License v3.0 (GPLv3)** - see the [LICENSE](LICENSE) file for details.
