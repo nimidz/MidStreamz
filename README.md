@@ -26,17 +26,6 @@
   </a>
 </p>
 
-<div align="center">
-
-### 📥 Download App Here : [Halaman Release (GitHub Releases)](https://github.com/nimidz/MidStreamz/releases/latest)
-
-[![Download APK](https://img.shields.io/badge/Direct_Download-MidzStreamz.v1.0.0.apk-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/nimidz/MidStreamz/releases/download/v1.0.0/MidzStreamz.v1.0.0.apk)
-[![All Releases](https://img.shields.io/badge/Browse_All-Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nimidz/MidStreamz/releases)
-
-*Compatible with Android 8.0+ (Oreo to Android 14+). No account login or root required.*
-
-</div>
-
 ---
 
 ## 📖 Overview
