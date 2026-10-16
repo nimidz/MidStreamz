@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/nimidz/MidStreamz/releases/latest"><img src="https://img.shields.io/github/v/release/nimidz/MidStreamz?style=for-the-badge&color=blueviolet&logo=github&label=Release" alt="Release" /></a>
+  <a href="https://github.com/nimidz/MidStreamz/releases"><img src="https://img.shields.io/github/downloads/nimidz/MidStreamz/total?style=for-the-badge&color=brightgreen&logo=android" alt="Downloads" /></a>
   <a href="https://github.com/nimidz/MidStreamz/stargazers"><img src="https://img.shields.io/github/stars/nimidz/MidStreamz?style=for-the-badge&color=blue" alt="Stars" /></a>
   <a href="https://github.com/nimidz/MidStreamz/network/members"><img src="https://img.shields.io/github/forks/nimidz/MidStreamz?style=for-the-badge&color=green" alt="Forks" /></a>
   <a href="https://github.com/nimidz/MidStreamz/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-orange.svg?style=for-the-badge" alt="License: GPL v3" /></a>
@@ -17,6 +19,23 @@
   <img src="https://img.shields.io/badge/Kotlin-1.9.22-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/UI-Jetpack_Compose_M3-4285F4.svg?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose M3" />
 </p>
+
+<p align="center">
+  <a href="https://github.com/nimidz/MidStreamz/releases/latest">
+    <img src="https://img.shields.io/badge/📥_DOWNLOAD_APP_HERE-CLICK_TO_GET_LATEST_RELEASE-00C853?style=for-the-badge&logo=android&logoColor=white" height="38" alt="Download App Here" />
+  </a>
+</p>
+
+<div align="center">
+
+### 📥 Download App Here : [Halaman Release (GitHub Releases)](https://github.com/nimidz/MidStreamz/releases/latest)
+
+[![Download APK](https://img.shields.io/badge/Direct_Download-MidzStreamz.v1.0.0.apk-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/nimidz/MidStreamz/releases/download/v1.0.0/MidzStreamz.v1.0.0.apk)
+[![All Releases](https://img.shields.io/badge/Browse_All-Releases-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nimidz/MidStreamz/releases)
+
+*Compatible with Android 8.0+ (Oreo to Android 14+). No account login or root required.*
+
+</div>
 
 ---
 
@@ -89,6 +108,12 @@ Unlike traditional PC-dependent solutions, MidStreamz operates **100% locally on
 ### 6. 🎨 Material You (M3) & High Refresh Rate Engine
 - Built following Google's modern **Material Design 3 (M3)** with dynamic dark color schemes.
 - Hardware-accelerated window pipeline (`PixelFormat.RGBA_8888`) locked to highest display mode (120Hz/90Hz) to eliminate scroll stutter.
+
+### 7. 🔄 Seamless In-App Auto-Updates & 37 Languages (i18n)
+- **Direct GitHub Releases Sync**: Automatic background check for new releases without requiring Google Play Store.
+- **In-App Downloader & Auto-Installer**: Real-time progress bar and one-tap install via Android `FileProvider`.
+- **7-Day Snooze**: Option to postpone update notifications for 7 days with quick manual check button.
+- **Universal Multi-Language Support**: Complete interface localization across 37 international languages.
 
 ---
 
@@ -207,9 +232,11 @@ MidStreamz is engineered with user privacy as a first-class requirement:
 | Permission | Purpose |
 |---|---|
 | `SYSTEM_ALERT_WINDOW` | Enables drawing the floating chat HUD on top of mobile games. |
-| `FOREGROUND_SERVICE` | Keeps TTS audio and live connection active when switching apps. |
+| `FOREGROUND_SERVICE` | Keeps TTS audio, song requests, and live connection active in the background. |
 | `INTERNET` | Directly connects to YouTube / TikTok live chat streams. |
-| `POST_NOTIFICATIONS` | Displays service status and quick controls in the notification tray. |
+| `POST_NOTIFICATIONS` | Displays service status, playback controls, and update download progress. |
+| `WAKE_LOCK` | Prevents connection drops and keeps audio responsive during screen-off intervals. |
+| `REQUEST_INSTALL_PACKAGES` | Allows automated in-app installation of new release APK updates. |
 
 > [!NOTE]
 > **No personal data is collected or transmitted.** MidStreamz connects directly from your phone to public live streaming endpoints without any intermediate tracking or analytical services.
