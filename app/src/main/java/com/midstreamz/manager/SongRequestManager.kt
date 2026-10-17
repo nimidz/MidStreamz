@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -106,6 +107,13 @@ class SongRequestManager(
                         _isPlaying.value = false
                         _statusText.value = "Musik Dijeda"
                     }
+                    3 -> { // BUFFERING
+                        _statusText.value = "Memuat musik..."
+                    }
+                    5 -> { // CUED
+                        Log.d(TAG, "Song cued, requesting playback...")
+                        resumePhoneAudio()
+                    }
                 }
             }
         }
@@ -114,10 +122,17 @@ class SongRequestManager(
         fun onError(errorCode: Int) {
             Log.w(TAG, "YouTube Player onError code: $errorCode")
             mainHandler.post {
-                _statusText.value = "Error memutar ($errorCode), memutar lagu berikutnya..."
-                mainHandler.postDelayed({
-                    playNext()
-                }, 2000)
+                _isPlaying.value = false
+                val remainingQueue = _queue.value
+                if (remainingQueue.isNotEmpty()) {
+                    _statusText.value = "Error ($errorCode), memutar lagu berikutnya..."
+                    mainHandler.postDelayed({
+                        playNext()
+                    }, 2500)
+                } else {
+                    _statusText.value = "Gagal memutar ($errorCode)"
+                    // Do not wipe _currentSong so user can see the song and status
+                }
             }
         }
     }
@@ -137,13 +152,14 @@ class SongRequestManager(
 
     private fun setupAudioWebView(webView: WebView) {
         webView.apply {
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
             settings.javaScriptEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
             settings.cacheMode = WebSettings.LOAD_DEFAULT
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            // Leave default Android WebView user-agent so YouTube does not detect mismatched platform/bot
+            // Use default WebView user agent to prevent YouTube embed bot detection
 
             addJavascriptInterface(AndroidSrBridge(), "AndroidSrBridge")
 
@@ -169,7 +185,6 @@ class SongRequestManager(
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <meta name="referrer" content="strict-origin-when-cross-origin">
                 <style>
                     html, body {
                         margin: 0;
@@ -178,21 +193,18 @@ class SongRequestManager(
                         height: 100%;
                         background-color: #000;
                         overflow: hidden;
+                        position: fixed;
                     }
                     #player {
                         width: 100%;
                         height: 100%;
                     }
                 </style>
+                <script defer src="https://www.youtube.com/iframe_api"></script>
             </head>
             <body>
                 <div id="player"></div>
                 <script>
-                    var tag = document.createElement('script');
-                    tag.src = "https://www.youtube.com/iframe_api";
-                    var firstScriptTag = document.getElementsByTagName('script')[0];
-                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
                     var player;
                     function onYouTubeIframeAPIReady() {
                         console.log("YT Iframe API Ready for video: $youtubeId");
@@ -207,9 +219,9 @@ class SongRequestManager(
                                 'disablekb': 1,
                                 'fs': 0,
                                 'rel': 0,
-                                'modestbranding': 1,
                                 'enablejsapi': 1,
-                                'origin': 'https://com.midstreamz'
+                                'origin': 'https://com.midstreamz',
+                                'iv_load_policy': 3
                             },
                             events: {
                                 'onReady': onPlayerReady,
@@ -225,20 +237,20 @@ class SongRequestManager(
                             event.target.unMute();
                             event.target.setVolume(${_volume.value});
                             event.target.playVideo();
-                            // Fallback retry for strict autoplay policies
                             setTimeout(function() {
                                 try {
-                                    if (event.target.getPlayerState() !== 1) {
+                                    var state = event.target.getPlayerState();
+                                    if (state !== 1 && state !== 3) {
                                         console.log("Autoplay retry unmuting...");
                                         event.target.mute();
                                         event.target.playVideo();
                                         setTimeout(function() {
                                             event.target.unMute();
                                             event.target.setVolume(${_volume.value});
-                                        }, 400);
+                                        }, 300);
                                     }
                                 } catch(e){}
-                            }, 600);
+                            }, 500);
                         } catch (e) {
                             console.error("onPlayerReady play error: " + e);
                         }
@@ -254,6 +266,9 @@ class SongRequestManager(
 
                     function onPlayerStateChange(event) {
                         console.log("YT Player state change: " + event.data);
+                        if (event.data === 5) {
+                            try { player.playVideo(); } catch(e){}
+                        }
                         if (window.AndroidSrBridge) {
                             window.AndroidSrBridge.onStateChange(event.data);
                         }
@@ -546,6 +561,8 @@ class SongRequestManager(
         mainHandler.post {
             try {
                 requestAudioFocus()
+                audioWebView?.onResume()
+                audioWebView?.resumeTimers()
                 val html = buildPlayerHtml(youtubeId)
                 audioWebView?.loadDataWithBaseURL("https://com.midstreamz", html, "text/html", "UTF-8", null)
                 Log.d(TAG, "Playing audio on phone for videoId: $youtubeId via YouTube Iframe API")
@@ -603,6 +620,8 @@ class SongRequestManager(
     private fun resumePhoneAudio() {
         mainHandler.post {
             try {
+                audioWebView?.onResume()
+                audioWebView?.resumeTimers()
                 val curVol = _volume.value
                 audioWebView?.evaluateJavascript("try { if (player && player.playVideo) { player.unMute(); player.setVolume($curVol); player.playVideo(); } } catch(e){}", null)
             } catch (_: Exception) {}

@@ -73,7 +73,6 @@ class LiveOverlayService : Service() {
         const val ACTION_TEST_FOLLOW = "com.midstreamz.action.TEST_FOLLOW"
         const val ACTION_TEST_COMMENT = "com.midstreamz.action.TEST_COMMENT"
         const val ACTION_TEST_GIFT = "com.midstreamz.action.TEST_GIFT"
-        const val ACTION_TEST_LIKE = "com.midstreamz.action.TEST_LIKE"
         const val ACTION_TEST_SONG = "com.midstreamz.action.TEST_SONG"
 
         var isServiceRunning = false
@@ -140,14 +139,6 @@ class LiveOverlayService : Service() {
                     authorName = "SultanAndi",
                     message = "Semangat push rank sampai Mythic bang!",
                     amountFormatted = "Rp 50.000"
-                ))
-            }
-            ACTION_TEST_LIKE -> {
-                showAnimatedOverlay("like", LiveChatMessage(
-                    id = "test_like_${System.currentTimeMillis()}",
-                    type = EventType.LIKE,
-                    authorName = "DinaCantik",
-                    message = "like"
                 ))
             }
             ACTION_TEST_SONG -> {
@@ -298,36 +289,26 @@ class LiveOverlayService : Service() {
             getSharedPreferences("midstreamz_hud_prefs", Context.MODE_PRIVATE)
                 .edit().putBoolean("hud_enabled", false).apply()
         }
-        detachAudioPlayer()
     }
 
     private fun attachAudioPlayer() {
-        val config = MidStreamzApp.instance.overlayConfigManager.config
-        if (config.masterOverlayDisabled) {
-            detachAudioPlayer()
-            return
-        }
-        // Only attach overlay window if HUD is actively showing to prevent Android displaying over other apps system alert
-        val isHudActive = overlayView != null || isHudVisible
-        if (!isHudActive) {
-            detachAudioPlayer()
-            return
-        }
-
         try {
             if (audioHolderView != null) return
             if (!Settings.canDrawOverlays(this)) return
 
             val webView = MidStreamzApp.instance.songRequestManager.getOrCreateAudioWebView(applicationContext)
+            (webView.parent as? ViewGroup)?.removeView(webView)
+
             val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             }
+            // 320x240 off-screen window ensures Chromium/Android never throttles background media playback
             val params = WindowManager.LayoutParams(
-                2,
-                2,
+                320,
+                240,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -335,8 +316,8 @@ class LiveOverlayService : Service() {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                x = 0
-                y = 0
+                x = -3000
+                y = -3000
             }
             windowManager.addView(webView, params)
             audioHolderView = webView
@@ -512,7 +493,7 @@ class LiveOverlayService : Service() {
             EventType.SUBSCRIBER -> showAnimatedOverlay("follow", chat)
             EventType.CHAT -> showAnimatedOverlay("comment", chat)
             EventType.SUPER_CHAT -> showAnimatedOverlay("gift", chat)
-            EventType.LIKE -> showAnimatedOverlay("like", chat)
+            EventType.LIKE -> {} // Like overlay removed
             EventType.MEMBERSHIP -> {
                 if (chat.isTikTok) {
                     showAnimatedOverlay("follow", chat)
@@ -537,12 +518,8 @@ class LiveOverlayService : Service() {
             return
         }
 
-        if (type == "like") {
-            if (config.likeOverlayEnabled) {
-                showLikeReactionOverlay(chat)
-            }
-            return
-        }
+        // Ignore like events for overlay display as requested
+        if (type == "like") return
 
         val itemConfig = when (type) {
             "follow" -> if (config.followConfig.isEnabled) config.followConfig else null
@@ -766,62 +743,7 @@ class LiveOverlayService : Service() {
         }, 4500L)
     }
 
-    private fun showLikeReactionOverlay(chat: LiveChatMessage) {
-        if (!Settings.canDrawOverlays(this)) return
-        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val overlayConfigManager = MidStreamzApp.instance.overlayConfigManager
-        if (overlayConfigManager.config.landscapeOnly && !isLandscape) return
 
-        val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
-
-        val density = resources.displayMetrics.density
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.BOTTOM or Gravity.END
-            x = (30 * density).toInt()
-            y = (180 * density).toInt()
-        }
-
-        val likeBubble = TextView(this).apply {
-            text = "❤️ ${chat.authorName} menyukai live"
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            val bg = GradientDrawable().apply {
-                setColor(Color.parseColor("#E11D48"))
-                cornerRadius = 999f
-            }
-            background = bg
-            val padH = (14 * density).toInt()
-            val padV = (6 * density).toInt()
-            setPadding(padH, padV, padH, padV)
-            elevation = 10f
-            translationY = 40f
-            alpha = 0f
-        }
-
-        try {
-            windowManager.addView(likeBubble, params)
-            likeBubble.animate().translationY(0f).alpha(1f).setDuration(250).start()
-            likeBubble.postDelayed({
-                likeBubble.animate().translationY(-80f).alpha(0f).setDuration(400).withEndAction {
-                    try { windowManager.removeView(likeBubble) } catch (_: Exception) {}
-                }.start()
-            }, 2200L)
-        } catch (_: Exception) {}
-    }
 
     private fun observeConnectionStatus() {
         val liveManager = MidStreamzApp.instance.liveManager

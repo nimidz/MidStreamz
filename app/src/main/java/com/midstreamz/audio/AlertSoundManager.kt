@@ -257,8 +257,8 @@ class AlertSoundManager(context: Context? = null) {
                     val mp = MediaPlayer()
                     mp.setAudioAttributes(
                         AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                             .build()
                     )
                     if (audioUrl.startsWith("content://") && appContext != null) {
@@ -322,8 +322,8 @@ class AlertSoundManager(context: Context? = null) {
                     val mp = MediaPlayer()
                     mp.setAudioAttributes(
                         AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                             .build()
                     )
                     if (audioUrl.startsWith("content://") && appContext != null) {
@@ -413,8 +413,8 @@ class AlertSoundManager(context: Context? = null) {
         val audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
             .setAudioFormat(

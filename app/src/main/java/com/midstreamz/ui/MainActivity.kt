@@ -270,23 +270,27 @@ fun MainAppContainer(
                         android.widget.FrameLayout(ctx).apply {
                             isClickable = false
                             isFocusable = false
-                            val wv = songRequestManager.getOrCreateAudioWebView(ctx)
-                            (wv.parent as? android.view.ViewGroup)?.removeView(wv)
-                            addView(wv, android.view.ViewGroup.LayoutParams(
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                            ))
+                            if (!LiveOverlayService.isServiceRunning) {
+                                val wv = songRequestManager.getOrCreateAudioWebView(ctx)
+                                (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+                                addView(wv, android.view.ViewGroup.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                                ))
+                            }
                         }
                     },
                     update = { container ->
-                        val wv = songRequestManager.getOrCreateAudioWebView(container.context)
-                        if (wv.parent != container) {
-                            (wv.parent as? android.view.ViewGroup)?.removeView(wv)
-                            container.removeAllViews()
-                            container.addView(wv, android.view.ViewGroup.LayoutParams(
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                            ))
+                        if (!LiveOverlayService.isServiceRunning) {
+                            val wv = songRequestManager.getOrCreateAudioWebView(container.context)
+                            if (wv.parent != container) {
+                                (wv.parent as? android.view.ViewGroup)?.removeView(wv)
+                                container.removeAllViews()
+                                container.addView(wv, android.view.ViewGroup.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                                ))
+                            }
                         }
                     },
                     modifier = Modifier
